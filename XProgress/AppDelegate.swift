@@ -12,6 +12,8 @@ import Cocoa
 class AppDelegate: NSObject, NSApplicationDelegate {
 
     let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    let progressController = ProgressController()
+    var selectedPercent = 0
     var dayPercent:Int?
     var monthPercent:Int?
     var yearPercent:Int?
@@ -22,10 +24,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Insert code here to initialize your application
-        statusItem.title = "XProgress"
-        dayPercent = getDayProgress()
-        monthPercent = getMonthProgress()
-        yearPercent = getYearProgress()
+        handleCurrentPercent()
         constructMenu()
         timer = Timer.scheduledTimer(timeInterval: 3600, target: self, selector: #selector(updateProgress), userInfo: nil, repeats: true)
     }
@@ -36,11 +35,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func constructMenu() {
         let menu = NSMenu()
-        dayPercentText = NSMenuItem(title: "Day: \(dayPercent!)%", action: #selector(AppDelegate.showChoice(_:)), keyEquivalent: "")
+        dayPercentText = NSMenuItem(title: progressController.getProgressText(option: 0, value: dayPercent!), action: #selector(AppDelegate.showChoice(_:)), keyEquivalent: "")
+        dayPercentText?.tag = 0
         menu.addItem(dayPercentText!)
-        monthPercentText = NSMenuItem(title: "Month: \(monthPercent!)%", action: #selector(AppDelegate.showChoice(_:)), keyEquivalent: "")
+        monthPercentText = NSMenuItem(title: progressController.getProgressText(option: 1, value: monthPercent!), action: #selector(AppDelegate.showChoice(_:)), keyEquivalent: "")
+        monthPercentText?.tag = 1
         menu.addItem(monthPercentText!)
-        yearPercentText = NSMenuItem(title: "Year: \(yearPercent!)%", action: #selector(AppDelegate.showChoice(_:)), keyEquivalent: "")
+        yearPercentText = NSMenuItem(title: progressController.getProgressText(option: 2, value: yearPercent!), action: #selector(AppDelegate.showChoice(_:)), keyEquivalent: "")
+        yearPercentText?.tag = 2
         menu.addItem(yearPercentText!)
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Preferences", action: #selector(AppDelegate.showPreferences(_:)), keyEquivalent: "P"))
@@ -49,50 +51,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = menu
     }
     
+    func handleCurrentPercent(){
+        dayPercent = progressController.getDayProgress()
+        monthPercent = progressController.getMonthProgress()
+        yearPercent = progressController.getYearProgress()
+        switch(selectedPercent){
+            case 0:
+                statusItem.title = progressController.getProgressText(option: selectedPercent, value: dayPercent!)
+            break
+            case 1:
+                statusItem.title = progressController.getProgressText(option: selectedPercent, value: monthPercent!)
+            break
+            default:
+                statusItem.title = progressController.getProgressText(option: selectedPercent, value: yearPercent!)
+        }
+    }
+    
     @objc func updateProgress(){
-        dayPercent = getDayProgress()
+        dayPercent = progressController.getDayProgress()
         dayPercentText!.title = "Day: \(dayPercent!)%"
-        monthPercent = getMonthProgress()
+        monthPercent = progressController.getMonthProgress()
         monthPercentText!.title = " Month: \(dayPercent!)%"
-        yearPercent = getYearProgress()
+        yearPercent = progressController.getYearProgress()
         yearPercentText!.title = "Year: \(dayPercent!)%"
         print("doing something")
-    }
-    
-    func getYearProgress() -> Int{
-        let calendar = Calendar.current
-        let date = Date()
-        let interval = calendar.dateInterval(of: .year, for: date)!
-        let day = calendar.ordinality(of: .day, in: .year, for: date)!
-        let days = calendar.dateComponents([.day], from: interval.start, to: interval.end).day!
-        let result:Double = (Double(day)/Double(days))*100
-        return Int(result)
-    }
-    
-    func getMonthProgress() -> Int{
-        let calendar = Calendar.current
-        let date = Date()
-        let interval = calendar.dateInterval(of: .month, for: date)!
-        let day = calendar.ordinality(of: .day, in: .month, for: date)!
-        let days = calendar.dateComponents([.day], from: interval.start, to: interval.end).day!
-        let result:Double = (Double(day)/Double(days))*100
-        return Int(result)
-    }
-    
-    func getDayProgress() -> Int {
-        let hour = Calendar.current.component(.hour, from: Date())
-        let result:Double = (Double(hour)/24)*100
-        return Int(result)
     }
 
     @objc func showPreferences(_ sender: Any?){
         print("showing preferences...")
     }
     
-    @objc func showChoice(_ sender: Any?){
-        print(getDayProgress())
-        //let day = calendar.ordinality(of: .day, in: .year, for: date)
-        //print("Days \(day)")
+    @objc func showChoice(_ sender: NSMenuItem){
+        selectedPercent = sender.tag
+        handleCurrentPercent()
     }
 
 }
